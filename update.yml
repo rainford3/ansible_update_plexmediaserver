@@ -1,0 +1,29 @@
+---
+
+- hosts: localhost
+  gather_facts: True
+  tasks:
+
+  - name: get latest package list from plex
+    uri:
+      url: https://plex.tv/api/downloads/1.json
+      method: GET
+      return_content: yes
+      status_code: 200
+      body_format: json
+    register: result
+
+  - set_fact:
+      os_distro: "{{ hostvars.localhost.ansible_facts.distribution }}"
+      os_variety: "{{ hostvars.localhost.ansible_facts.distribution_file_variety | lower }}"
+      os_architecture: "{{ hostvars.localhost.ansible_facts.architecture }}"
+
+  - set_fact:
+      url_list: "{{ result | to_json | from_json | json_query(\"json.computer.Linux.releases | [?contains(label,'\" + os_distro + \"')] | [?contains(url,'\" + os_architecture + \"')].url \") }}"
+
+
+  - name: install updated plex package
+    yum:
+      name: "{{ url_list }}"
+      state: present
+
