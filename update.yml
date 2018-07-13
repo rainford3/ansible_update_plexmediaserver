@@ -19,11 +19,26 @@
       os_architecture: "{{ hostvars.localhost.ansible_facts.architecture }}"
 
   - set_fact:
-      url_list: "{{ result | to_json | from_json | json_query(\"json.computer.Linux.releases | [?contains(label,'\" + os_distro + \"')] | [?contains(url,'\" + os_architecture + \"')].url \") }}"
+      url: "{{ result | to_json | from_json | json_query(\"json.computer.Linux.releases | [?contains(label,'\" + os_distro + \"')] | [?contains(url,'\" + os_architecture + \"')].url \") }}"
 
+  - name: stop the pleax service
+    service:
+      name: plexmediaserver
+      state: stopped
 
-  - name: install updated plex package
+  - name: install the plex service if the OS is redhat based
     yum:
-      name: "{{ url_list }}"
+      name: "{{ url }}"
       state: present
+    when: os_variety == "redhat"
+
+  - apt: install the plex service if the OS is ubuntu based
+      deb: "{{ url }}"
+    when: os_variety == "ubuntu"
+
+  - name: start the plex service after install
+    service:
+      name: plexmediaserver
+      state: started
+
 
