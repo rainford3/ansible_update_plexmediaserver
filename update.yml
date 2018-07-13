@@ -1,7 +1,8 @@
 ---
 
-- hosts: localhost
+- hosts: all
   gather_facts: True
+  user: root
   tasks:
 
   - name: get latest package list from plex
@@ -13,10 +14,13 @@
       body_format: json
     register: result
 
+  - debug:
+      msg: "{{ hostvars }}"
+
   - set_fact:
-      os_distro: "{{ hostvars.localhost.ansible_facts.distribution }}"
-      os_variety: "{{ hostvars.localhost.ansible_facts.distribution_file_variety | lower }}"
-      os_architecture: "{{ hostvars.localhost.ansible_facts.architecture }}"
+      os_distro: "{{ hostvars[ansible_hostname].ansible_facts.distribution }}"
+      os_variety: "{{ hostvars[ansible_hostname].ansible_facts.distribution_file_variety | lower }}"
+      os_architecture: "{{ hostvars[ansible_hostname].ansible_facts.architecture }}"
 
   - set_fact:
       url: "{{ result | to_json | from_json | json_query(\"json.computer.Linux.releases | [?contains(label,'\" + os_distro + \"')] | [?contains(url,'\" + os_architecture + \"')].url \") }}"
@@ -32,7 +36,8 @@
       state: present
     when: os_variety == "redhat"
 
-  - apt: install the plex service if the OS is ubuntu based
+  - name: install the plex service if the OS is ubuntu based
+    apt:
       deb: "{{ url }}"
     when: os_variety == "ubuntu"
 
